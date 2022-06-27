@@ -1,0 +1,1 @@
+This package provides utility for writing to the terminal as if it were a screen.
