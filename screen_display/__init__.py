@@ -2,7 +2,7 @@
 This package provides utility for writing to the terminal as if it were a screen.
 """
 
-__version__ = '1.0'
+__version__ = '1.1'
 
 import os
 import sys
