@@ -13,3 +13,5 @@ __pycache__
 
 # Pip
 *.egg-info
+
+console_size_changer.py

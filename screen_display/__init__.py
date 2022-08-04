@@ -2,13 +2,15 @@
 This package provides utility for writing to the terminal as if it were a screen.
 """
 
-__version__ = '1.1'
+__version__ = '1.2'
 
+import math
 import os
 import sys
 #pip
 import colorama as col
 from colorama import win32
+from acc_console_font import get_size
 
 
 #colors
@@ -35,11 +37,10 @@ COLOR_LIGHTWHITE = 67
 STYLE_BRIGHT    = 1
 STYLE_DIM       = 2
 STYLE_NORMAL    = 22
-STYLE_DEFAULT = -1
 
 
 class Text_style:
-    def __init__(self, fore_color=COLOR_DEFAULT, back_color=COLOR_DEFAULT, text_type=STYLE_DEFAULT):
+    def __init__(self, fore_color=COLOR_DEFAULT, back_color=COLOR_DEFAULT, text_type=STYLE_NORMAL):
         self.fore_color = int(fore_color)
         self.back_color = int(back_color)
         self.text_type = int(text_type)
@@ -63,31 +64,24 @@ class Screen_text:
 class Screen:
 
     _INITIALISED = False
-    MIN_WIDTH = 15
     _MIN_WIDTH_VSC = 30
+    MIN_WIDTH = -1
     MIN_HEIGHT = 1
 
 
-    def __init__(self, width:int=None, height:int=None, default_style:Text_style=None, title:str=None, in_terminal=True):
-        self._INITIALISED = True
-        col.init()
-        if not in_terminal:
-            self.MIN_WIDTH = self._MIN_WIDTH_VSC
-        # set size
-        if width == None:
-            width = os.get_terminal_size().columns
-        if height == None:
-            height = os.get_terminal_size().lines
-        self.set_width(width)
-        self.set_height(height)
-        self.change_size()
-        if default_style == None:
-            default_style = Text_style()
+    def __init__(self, width:int=None, height:int=None, default_style:Text_style=None, title:str=None, in_terminal=True, subscreen=False, offset_x=0, offset_y=0):
+        self.width = width
+        self.height = height
         self.default_style = default_style
-        self.change_default_color(self.default_style)
-        if title != None:
-            self.change_title(title)
+        self.title = title
+        self.in_terminal = in_terminal
+        self.subscreen = subscreen
+        self.offset = [offset_x, offset_y]
         self.texts:list[Screen_text] = []
+        if not self.subscreen:
+            self.init()
+        else:
+            self.sub_init()
     
 
     def __del__(self):
@@ -95,13 +89,64 @@ class Screen:
             self.deinit()
 
 
+    def init(self):
+        """
+        Initalises all variables + colorama.\n
+        This method is automaticaly run if the screen isn't a subscreen.
+        """
+        if not self._INITIALISED:
+            self._INITIALISED = True
+            col.init()
+            if not self.in_terminal:
+                self.MIN_WIDTH = self._MIN_WIDTH_VSC
+            else:
+                self.MIN_WIDTH = math.ceil(120 / get_size()[0])
+            # set size
+            if self.width == None:
+                self.width = os.get_terminal_size().columns
+            if self.height == None:
+                self.height = os.get_terminal_size().lines
+            self.set_width(self.width)
+            self.set_height(self.height)
+            self.change_size()
+            if self.default_style == None:
+                self.default_style = Text_style()
+            self.change_default_style(self.default_style)
+            if self.title != None:
+                self.change_title(self.title)
+    
+
+    def sub_init(self):
+        """
+        Initalises all variables.\n
+        This method is automaticaly run if the screen is initalised as a subscreen to another screen.
+        """
+        if not self._INITIALISED:
+            self._INITIALISED = True
+            self.MIN_WIDTH = 1
+            # set size
+            # max size = parrent size?
+            if self.width == None:
+                self.width = os.get_terminal_size().columns - self.offset[0]
+            if self.height == None:
+                self.height = os.get_terminal_size().lines - self.offset[1]
+            self.set_width(self.width)
+            self.set_height(self.height)
+            if self.default_style == None:
+                self.default_style = Text_style()
+            self.change_default_style(self.default_style)
+            if self.title != None:
+                pass
+                # small screen title??????
+
+
     def deinit(self):
         """
-        Resets everything and disposes colorama.
+        Resets everything and disposes colorama.\n
+        Should be writen after you don't plan on using the screen anymore because otherwise `←[` text might show up.
         """
         if self._INITIALISED:
             self._INITIALISED = False
-            self.__del__()
             self.reset()
             col.deinit()
     
@@ -121,7 +166,7 @@ class Screen:
         self.default_style.back_color = COLOR_RESET
         self.default_style.text_type = STYLE_NORMAL
         self.reset_color()
-        self.change_default_color(self.default_style)
+        self._change_terminal_color()
 
 
     def reset_cursor(self):
@@ -150,26 +195,36 @@ class Screen:
     def set_width(self, width:int):
         """
         Sets the variable for screen width.\n
-        DOESN'T ACTUALY CHANGE SCREEN SIZE.
+        DOESN'T ACTUALY CHANGE SCREEN SIZE.\n
+        For that, use `change_size` instead.
         """
         if width < self.MIN_WIDTH:
             width = self.MIN_WIDTH
+        if self.subscreen:
+            max_w = os.get_terminal_size().columns
+            if width + self.offset[0] > max_w:
+                width = max_w - self.offset[0]
         self.width = width
     
 
     def set_height(self, height:int):
         """
         Sets the variable for screen height.\n
-        DOESN'T ACTUALY CHANGE SCREEN SIZE.
+        DOESN'T ACTUALY CHANGE SCREEN SIZE.\n
+        For that, use `change_size` instead.
         """
         if height < self.MIN_HEIGHT:
             height = self.MIN_HEIGHT
+        if self.subscreen:
+            max_h = os.get_terminal_size().lines
+            if height + self.offset[1] > max_h:
+                height = max_h - self.offset[1]
         self.height = height
 
 
     def change_size(self):
         """
-        This is the only method that changes the terminal size, becouse changing it will clear all text.
+        This is the only method that changes the terminal size, because changing it will clear all text.
         """
         os.system(f"mode {self.width}, {self.height}")
     
@@ -194,15 +249,15 @@ class Screen:
         f_color = self._convert_color(self.default_style.fore_color)
         b_color = self._convert_color(self.default_style.back_color)
         if f_color == -1:
-            f_color = self._convert_color(self.default_style.fore_color)
+            f_color = self._convert_color(COLOR_WHITE)
         if b_color == -1:
-            b_color = self._convert_color(self.default_style.back_color)
+            b_color = self._convert_color(COLOR_BLACK)
         os.system(f"color {b_color}{f_color}")
 
 
-    def change_default_color_exp(self, fore_color:int=None, back_color:int=None, style:int=None):
+    def change_default_style_exp(self, fore_color:int=None, back_color:int=None, style:int=None):
         """
-        `change_default_color` expanded.
+        `change_default_style` expanded.
         """
         # Background color overrides foreground color in vscode.
         if fore_color != None:
@@ -214,15 +269,15 @@ class Screen:
         self._change_terminal_color()
 
 
-    def change_default_color(self, style:Text_style):
+    def change_default_style(self, style:Text_style):
         """
         Changes the default color/style, for color afer a rendered text object, and the default terminal color.\n
         Changes ALL previously printed text's colors.
         """
-        self.change_default_color_exp(style.fore_color, style.back_color, style.text_type)
+        self.change_default_style_exp(style.fore_color, style.back_color, style.text_type)
 
 
-    def change_color(self, fore_color:int=None, back_color:int=None, style=STYLE_DEFAULT):
+    def change_color(self, fore_color:int=None, back_color:int=None, style=STYLE_NORMAL):
         """
         Changes the current color/style of the terminal.
         """
@@ -252,7 +307,7 @@ class Screen:
         """
         Moves the cursor.
         """
-        sys.stdout.write(f"\x1b[{y+1};{x+1}H")
+        sys.stdout.write(f"\x1b[{self.offset[1]+y+1};{self.offset[0]+x+1}H")
     
 
     def write_to(self, text:str, x:int, y:int, wrap=True):
@@ -289,8 +344,8 @@ class Screen:
         #clear
         self.reset_color()
         self.reset_cursor()
-        sc.clear()
-        self.change_default_color(self.default_style)
+        self.clear()
+        self.change_default_style(self.default_style)
         #render
         for text in self.texts:
             self.change_color_o(text.style)
@@ -327,7 +382,8 @@ def color_test():
 
 
 if __name__ == "__main__":
-    sc = Screen(None, None, Text_style(COLOR_LIGHTBLACK, COLOR_LIGHTRED), "test")
+    sc = Screen(None, 15, Text_style(COLOR_LIGHTBLACK, COLOR_LIGHTRED), "test", True, False, 0, 0)
+    # sc.init()
     print(sc.width, sc.height)
     s1 = Text_style(COLOR_RED, COLOR_LIGHTBLUE, STYLE_DIM)
     s2 = Text_style(COLOR_BLUE, COLOR_GREEN)
@@ -335,4 +391,5 @@ if __name__ == "__main__":
     sc.render()
     sc.reset_cursor()
     input()
+    # sc.clear()
     sc.deinit()
