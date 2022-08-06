@@ -2,12 +2,12 @@
 This package provides utility for writing to the terminal as if it were a screen.
 """
 
-__version__ = '1.2'
+__version__ = '1.2.1'
 
 import math
 import os
 import sys
-from acc_console_font import get_size
+from screen_display.acc_console_font import get_size
 #pip
 import colorama as col
 from colorama import win32
