@@ -2,7 +2,7 @@
 This package provides utility for writing to the terminal as if it were a screen.
 """
 
-__version__ = '1.2.2'
+__version__ = '1.3'
 
 from enum import Enum
 import math
