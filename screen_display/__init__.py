@@ -4,6 +4,7 @@ This package provides utility for writing to the terminal as if it were a screen
 
 __version__ = '1.2.2'
 
+from enum import Enum
 import math
 import os
 import sys
@@ -12,38 +13,40 @@ from screen_display.acc_console_font import get_size
 import colorama as col
 from colorama import win32
 
+class Colors(Enum):
+    BLACK       = 0
+    RED         = 1
+    GREEN       = 2
+    YELLOW      = 3
+    BLUE        = 4
+    MAGENTA     = 5
+    CYAN        = 6
+    WHITE       = 7
+    RESET       = 9
+    DEFAULT     = -1
+    #extra colors
+    LIGHTBLACK  = 60
+    LIGHTRED    = 61
+    LIGHTGREEN  = 62
+    LIGHTYELLOW = 63
+    LIGHTBLUE   = 64
+    LIGHTMAGENTA= 65
+    LIGHTCYAN   = 66
+    LIGHTWHITE  = 67
 
-#colors
-COLOR_BLACK = 0
-COLOR_RED = 1
-COLOR_GREEN = 2
-COLOR_YELLOW = 3
-COLOR_BLUE = 4
-COLOR_MAGENTA = 5
-COLOR_CYAN = 6
-COLOR_WHITE = 7
-COLOR_RESET = 9
-COLOR_DEFAULT = -1
-#extra colors
-COLOR_LIGHTBLACK = 60
-COLOR_LIGHTRED = 61
-COLOR_LIGHTGREEN = 62
-COLOR_LIGHTYELLOW = 63
-COLOR_LIGHTBLUE = 64
-COLOR_LIGHTMAGENTA = 65
-COLOR_LIGHTCYAN = 66
-COLOR_LIGHTWHITE = 67
-#styles
-STYLE_BRIGHT    = 1
-STYLE_DIM       = 2
-STYLE_NORMAL    = 22
+
+class Styles(Enum):
+    BRIGHT      = 1
+    DIM         = 2
+    NORMAL      = 22
+    DEFAULT     = -1
 
 
 class Text_style:
-    def __init__(self, fore_color=COLOR_DEFAULT, back_color=COLOR_DEFAULT, text_type=STYLE_NORMAL):
-        self.fore_color = int(fore_color)
-        self.back_color = int(back_color)
-        self.text_type = int(text_type)
+    def __init__(self, fore_color=Colors.DEFAULT, back_color=Colors.DEFAULT, text_type=Styles.DEFAULT):
+        self.fore_color = Colors(fore_color)
+        self.back_color = Colors(back_color)
+        self.text_type = Styles(text_type)
 
 
 class Screen_text:
@@ -56,8 +59,8 @@ class Screen_text:
             style = Text_style()
         self.style = style
     
-    def display(self, screen):
-        screen.change_color(self.style.fore_color, self.style.back_color, self.style.text_type)
+    def display(self, screen:'Screen'):
+        screen.change_style(self.style)
         screen.write_to(self.text, self.x, self.y, self.wrap)
 
 
@@ -162,11 +165,8 @@ class Screen:
         """
         Resets current, deafult and terminal colors/style.
         """
-        self.default_style.fore_color = COLOR_RESET
-        self.default_style.back_color = COLOR_RESET
-        self.default_style.text_type = STYLE_NORMAL
         self.reset_color()
-        self._change_terminal_color()
+        self.change_default_style_exp(Colors.RESET, Colors.RESET, Styles.NORMAL)
 
 
     def reset_cursor(self):
@@ -236,36 +236,51 @@ class Screen:
         win32.SetConsoleTitle(str(title))
 
 
-    def _convert_color(self, color:int):
-        colors = [COLOR_RESET, COLOR_BLACK, COLOR_RED, COLOR_GREEN, COLOR_YELLOW, COLOR_BLUE, COLOR_MAGENTA, COLOR_CYAN, COLOR_WHITE, COLOR_LIGHTBLACK, COLOR_LIGHTRED, COLOR_LIGHTGREEN, COLOR_LIGHTYELLOW, COLOR_LIGHTBLUE, COLOR_LIGHTMAGENTA, COLOR_LIGHTCYAN, COLOR_LIGHTWHITE]
-        colors_mapped = [-1, "0", "4", "2", "6", "1", "5", "3", "7", "8", "C", "A", "E", "9", "D", "B", "F"]
+    def _convert_color(self, color:Colors):
+        """
+        Converts the color from Colors enum to a console accepted equivalent.
+        """
+        colors = [Colors.BLACK, Colors.RED, Colors.GREEN, Colors.YELLOW, Colors.BLUE, Colors.MAGENTA, Colors.CYAN, Colors.WHITE, Colors.LIGHTBLACK, Colors.LIGHTRED, Colors.LIGHTGREEN, Colors.LIGHTYELLOW, Colors.LIGHTBLUE, Colors.LIGHTMAGENTA, Colors.LIGHTCYAN, Colors.LIGHTWHITE]
+        colors_mapped = ["0", "4", "2", "6", "1", "5", "3", "7", "8", "C", "A", "E", "9", "D", "B", "F"]
         try:
             return colors_mapped[colors.index(color)]
         except ValueError:
-            return colors_mapped[0]
+            return -1
 
 
     def _change_terminal_color(self):
+        """
+        Changes the color of the terminal to the deffault color of the screen, or black and white.
+        """
         f_color = self._convert_color(self.default_style.fore_color)
         b_color = self._convert_color(self.default_style.back_color)
         if f_color == -1:
-            f_color = self._convert_color(COLOR_WHITE)
+            f_color = self._convert_color(Colors.WHITE)
         if b_color == -1:
-            b_color = self._convert_color(COLOR_BLACK)
+            b_color = self._convert_color(Colors.BLACK)
         os.system(f"color {b_color}{f_color}")
 
 
-    def change_default_style_exp(self, fore_color:int=None, back_color:int=None, style:int=None):
+    def change_default_style_exp(self, fore_color:Colors=None, back_color:Colors=None, style:Styles=None):
         """
         `change_default_style` expanded.
         """
         # Background color overrides foreground color in vscode.
         if fore_color != None:
-            self.default_style.fore_color = fore_color
+            if fore_color == Colors.DEFAULT or fore_color == Colors.RESET:
+                self.default_style.fore_color = Colors.WHITE
+            else:
+                self.default_style.fore_color = fore_color
         if back_color != None:
-            self.default_style.back_color = back_color
+            if back_color == Colors.DEFAULT or back_color == Colors.RESET:
+                self.default_style.back_color = Colors.BLACK
+            else:
+                self.default_style.back_color = back_color
         if style != None:
-            self.default_style.text_type = style
+            if style == Colors.DEFAULT:
+                self.default_style.text_type = Styles.NORMAL
+            else:
+                self.default_style.text_type = style
         self._change_terminal_color()
 
 
@@ -277,30 +292,31 @@ class Screen:
         self.change_default_style_exp(style.fore_color, style.back_color, style.text_type)
 
 
-    def change_color(self, fore_color:int=None, back_color:int=None, style=STYLE_NORMAL):
+    def change_style_exp(self, fore_color:Colors=None, back_color:Colors=None, style:Styles=None):
+        """
+        `change_default_style` expanded.
+        """
+        # Background color overrides foreground color in vscode.
+        if fore_color != None:
+            if fore_color == Colors.DEFAULT:
+                fore_color = self.default_style.fore_color
+            sys.stdout.write(f"\x1b[{30 + fore_color.value}m")
+        if back_color != None:
+            if back_color == Colors.DEFAULT:
+                back_color = self.default_style.back_color
+            sys.stdout.write(f"\x1b[{40 + back_color.value}m")
+        if style != None:
+            if style == Colors.DEFAULT:
+                style = self.default_style.text_type
+            sys.stdout.write(f"\x1b[{style.value}m")
+    
+
+    def change_style(self, style:Text_style):
         """
         Changes the current color/style of the terminal.
         """
         # Background color overrides foreground color in vscode.
-        if fore_color != None:
-            if fore_color == -1:
-                fore_color = self.default_style.fore_color
-            sys.stdout.write(f"\x1b[{30 + fore_color}m")
-        if back_color != None:
-            if back_color == -1:
-                back_color = self.default_style.back_color
-            sys.stdout.write(f"\x1b[{40 + back_color}m")
-        if style == -1:
-                style = self.default_style.text_type
-        sys.stdout.write(f"\x1b[{style}m")
-    
-
-    def change_color_o(self, style:Text_style):
-        """
-        `change_color` OOP.
-        """
-        # Background color overrides foreground color in vscode.
-        self.change_color(style.fore_color, style.back_color, style.text_type)
+        self.change_style_exp(style.fore_color, style.back_color, style.text_type)
     
 
     def move_cursor(self, x:int, y:int):
@@ -348,10 +364,10 @@ class Screen:
         self.change_default_style(self.default_style)
         #render
         for text in self.texts:
-            self.change_color_o(text.style)
+            self.change_style(text.style)
             self.write_to(text.text, text.x, text.y, text.wrap)
         #clear
-        self.change_color_o(self.default_style)
+        self.change_style(self.default_style)
 
 
 def delete_last_line():
@@ -365,28 +381,48 @@ def delete_last_line():
 
 
 def color_test():
+    """
+    windows 8.1 terminal:
+    - color accuracy: 9/10
+    - foreground/background color interaction: seemingly perfect?
+    vscode terminal:
+    - color accuracy: 10/10
+    - foreground/background color interaction: wierd: almost none, best in bright mode
+    """
+    # setup
     sc_test = Screen(title="Color test")
-    sc_test.move_cursor(1, 2)
-    print(end="##################")
-    sc_test.move_cursor(1, 3)
-    print(end="#")
-    colors = [COLOR_BLACK, COLOR_RED, COLOR_GREEN, COLOR_YELLOW, COLOR_BLUE, COLOR_MAGENTA, COLOR_CYAN, COLOR_WHITE, COLOR_LIGHTBLACK, COLOR_LIGHTRED, COLOR_LIGHTGREEN, COLOR_LIGHTYELLOW, COLOR_LIGHTBLUE, COLOR_LIGHTMAGENTA, COLOR_LIGHTCYAN, COLOR_LIGHTWHITE]
-    for color in colors:
-        sc_test.change_color(None, color)
-        print(end=" ")
-    sc_test.change_color(None, COLOR_RESET)
-    print(end="#")
-    sc_test.move_cursor(1, 4)
-    input(end="##################")
+    # 1. line
+    sc_test.write_to("#", 1, 2)
+    for color in Colors._member_names_:
+        if Colors[color] != Colors.DEFAULT:
+            print(end=color[0])
+    print("#")
+    # 2-4. line
+    for style in Styles._member_names_:
+        if Styles[style] != Styles.DEFAULT:
+            print(end=" " + style[0])
+            for color in Colors._member_names_:
+                if Colors[color] != Colors.DEFAULT:
+                    sc_test.change_style_exp(Colors[color], Colors[color], Styles[style])
+                    print(end="X")
+            sc_test.change_style_exp(Colors.DEFAULT, Colors.DEFAULT, Styles.NORMAL)
+            print("#")
+    # 5. line
+    sc_test.write_to("#", 1, 6)
+    for _ in range(len(Colors._member_names_)):
+        print(end="#")
+    # end
+    input()
     sc_test.deinit()
 
 
 if __name__ == "__main__":
-    sc = Screen(None, 15, Text_style(COLOR_LIGHTBLACK, COLOR_LIGHTRED), "test", True, False, 0, 0)
+    # color_test()
+    sc = Screen(None, 15, Text_style(Colors.LIGHTBLACK, Colors.LIGHTRED), "test", True, False, 0, 0)
     # sc.init()
     print(sc.width, sc.height)
-    s1 = Text_style(COLOR_RED, COLOR_LIGHTBLUE, STYLE_DIM)
-    s2 = Text_style(COLOR_BLUE, COLOR_GREEN)
+    s1 = Text_style(Colors.RED, Colors.LIGHTBLUE, Styles.DIM)
+    s2 = Text_style(Colors.BLUE, Colors.GREEN)
     sc.add_texts([Screen_text("HAHAH", 5, 10, s1), Screen_text("hmmmmmmmmmmmm", 0, 2, s2), Screen_text("12345678901234567890", 50, 10, s1), Screen_text("lllll", 16, 6)])
     sc.render()
     sc.reset_cursor()
