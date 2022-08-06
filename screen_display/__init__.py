@@ -2,7 +2,7 @@
 This package provides utility for writing to the terminal as if it were a screen.
 """
 
-__version__ = '1.2.1'
+__version__ = '1.2.2'
 
 import math
 import os
@@ -377,7 +377,7 @@ def color_test():
     sc_test.change_color(None, COLOR_RESET)
     print(end="#")
     sc_test.move_cursor(1, 4)
-    print(end="##################")
+    input(end="##################")
     sc_test.deinit()
 
 
