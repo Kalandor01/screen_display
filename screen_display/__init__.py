@@ -2,7 +2,7 @@
 This package provides utility for writing to the terminal as if it were a screen.
 """
 
-__version__ = '1.3'
+__version__ = '1.3.1'
 
 from enum import Enum
 import math
@@ -277,7 +277,7 @@ class Screen:
             else:
                 self.default_style.back_color = back_color
         if style != None:
-            if style == Colors.DEFAULT:
+            if style == Styles.DEFAULT:
                 self.default_style.text_type = Styles.NORMAL
             else:
                 self.default_style.text_type = style
@@ -306,7 +306,7 @@ class Screen:
                 back_color = self.default_style.back_color
             sys.stdout.write(f"\x1b[{40 + back_color.value}m")
         if style != None:
-            if style == Colors.DEFAULT:
+            if style == Styles.DEFAULT:
                 style = self.default_style.text_type
             sys.stdout.write(f"\x1b[{style.value}m")
     
