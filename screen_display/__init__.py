@@ -2,7 +2,7 @@
 This package provides utility for writing to the terminal as if it were a screen.
 """
 
-__version__ = '1.3.1'
+__version__ = '1.3.2'
 
 from enum import Enum
 import math
@@ -416,7 +416,7 @@ def color_test():
     sc_test.deinit()
 
 
-if __name__ == "__main__":
+def __test_run():
     # color_test()
     sc = Screen(None, 15, Text_style(Colors.LIGHTBLACK, Colors.LIGHTRED), "test", True, False, 0, 0)
     # sc.init()
@@ -429,3 +429,6 @@ if __name__ == "__main__":
     input()
     # sc.clear()
     sc.deinit()
+
+
+# __test_run()
