@@ -2,13 +2,13 @@
 This package provides utility for writing to the terminal as if it were a screen.
 """
 
-__version__ = '1.3.2'
+__version__ = '1.3.3'
 
 from enum import Enum
 import math
 import os
 import sys
-from screen_display.acc_console_font import get_size
+from acc_console_font import get_size
 #pip
 import colorama as col
 from colorama import win32
@@ -100,7 +100,7 @@ class Screen:
         if not self._INITIALISED:
             self._INITIALISED = True
             col.init()
-            if not self.in_terminal:
+            if not self.in_terminal or get_size()[0] < 1:
                 self.MIN_WIDTH = self._MIN_WIDTH_VSC
             else:
                 self.MIN_WIDTH = math.ceil(120 / get_size()[0])
