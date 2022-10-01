@@ -5,6 +5,9 @@ import sys
 # try to remove it without the background being weird
 import colorama as col
 # local imports
+# from enums import Styles, Colors, Wrap_styles
+# from text import Text_style
+# from acc_console_font import get_size
 from screen_display.enums import Styles, Colors, Wrap_styles
 from screen_display.text import Text_style
 from screen_display.acc_console_font import get_size

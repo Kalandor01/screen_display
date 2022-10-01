@@ -1,4 +1,5 @@
 # local imports
+# from enums import Colors, Styles
 from screen_display.enums import Colors, Styles
 
 class Text_style:
