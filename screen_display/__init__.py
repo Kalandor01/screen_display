@@ -2,13 +2,14 @@
 This package provides utility for writing to the terminal as if it were a screen.
 """
 
-__version__ = '1.4'
+__version__ = '1.4.1'
 from msvcrt import getch
 from time import sleep
-from enums import Colors, Styles, Wrap_styles
-from text import Text_style
-from screen import Text, Simple_text, Screen_text, Screen
-from acc_console_font import get_size
+# local imports
+from screen_display.enums import Colors, Styles, Wrap_styles
+from screen_display.text import Text_style
+from screen_display.screen import Text, Simple_text, Screen_text, Screen
+from screen_display.acc_console_font import get_size
 
 def color_test():
     """

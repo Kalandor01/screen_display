@@ -1,12 +1,13 @@
 import math
 import os
 import sys
-from enums import Styles, Colors, Wrap_styles
-from text import Text_style
-from acc_console_font import get_size
 #pip
 # try to remove it without the background being weird
 import colorama as col
+# local imports
+from screen_display.enums import Styles, Colors, Wrap_styles
+from screen_display.text import Text_style
+from screen_display.acc_console_font import get_size
 
 
 class Text:
@@ -462,4 +463,5 @@ class Screen:
             if sc_text.text_obj == text:
                 sc_text.update()
                 updated = True
+                break
         return updated

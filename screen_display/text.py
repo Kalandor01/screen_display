@@ -1,4 +1,5 @@
-from enums import Colors, Styles, Wrap_styles
+# local imports
+from screen_display.enums import Colors, Styles
 
 class Text_style:
     def __init__(self, fore_color=Colors.DEFAULT, back_color=Colors.DEFAULT, text_type=Styles.DEFAULT):
