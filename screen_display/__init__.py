@@ -2,7 +2,7 @@
 This package provides utility for writing to the terminal as if it were a screen.
 """
 
-__version__ = '1.4.1.1'
+__version__ = '1.4.1.2'
 from msvcrt import getch
 from time import sleep
 # local imports
@@ -67,7 +67,7 @@ def render_loop(sc:Screen):
             sleep(0.05)
 
 
-def __test_run():
+def _test_run():
     # color_test()
     sc = Screen(None, 15, Text_style(Colors.LIGHTBLACK, Colors.LIGHTRED), "test", True, False, 0, 0)
     # sc.init()
@@ -89,4 +89,4 @@ def __test_run():
 
 
 if __name__ == "__main__":
-    __test_run()
+    _test_run()
